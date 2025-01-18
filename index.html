@@ -1,0 +1,209 @@
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Photo Guessing Multiplayer Game
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&amp;display=swap" rel="stylesheet"/>
+  <style>
+   body {
+            font-family: 'Roboto', sans-serif;
+        }
+  </style>
+ </head>
+ <body class="bg-gray-100 text-gray-800">
+  <div class="container mx-auto p-4">
+   <h1 class="text-4xl font-bold text-center mb-8">
+    Photo Guessing Multiplayer Game
+   </h1>
+   <div class="text-center mb-8" id="game-setup">
+    <h2 class="text-2xl font-semibold mb-4">
+     Enter Player Names
+    </h2>
+    <div class="flex justify-center space-x-4 mb-4">
+     <input class="p-2 border border-gray-300 rounded" id="player1" placeholder="Player 1 Name" type="text"/>
+     <input class="p-2 border border-gray-300 rounded" id="player2" placeholder="Player 2 Name" type="text"/>
+    </div>
+    <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" id="start-game">
+     Start Game
+    </button>
+   </div>
+   <div class="hidden" id="game-interface">
+    <div class="flex justify-between items-center mb-4">
+     <div class="text-xl font-semibold" id="timer">
+      Time Left:
+      <span id="time-left">
+       30
+      </span>
+      s
+     </div>
+     <div class="text-xl font-semibold" id="round">
+      Round:
+      <span id="current-round">
+       1
+      </span>
+     </div>
+    </div>
+    <div class="flex justify-center mb-4">
+     <img alt="A placeholder image for the guessing game" class="w-full max-w-lg rounded shadow-lg" height="400" id="game-image" src="https://storage.googleapis.com/a1aa/image/JRAWpAnpye2HUCw3fBo4kkAQ60tjTn5kQeCFblU9PftISaZQB.jpg" width="600"/>
+    </div>
+    <div class="flex justify-center space-x-4 mb-4">
+     <input class="p-2 border border-gray-300 rounded w-full max-w-lg" id="guess" placeholder="Enter your guess" type="text"/>
+     <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" id="submit-guess">
+      Submit Guess
+     </button>
+    </div>
+    <div class="text-center text-xl font-semibold mb-4" id="feedback">
+    </div>
+   </div>
+   <div class="hidden" id="leaderboard">
+    <h2 class="text-2xl font-semibold text-center mb-4">
+     Leaderboard
+    </h2>
+    <table class="w-full max-w-lg mx-auto bg-white rounded shadow-lg">
+     <thead>
+      <tr class="bg-gray-200">
+       <th class="p-2">
+        Player
+       </th>
+       <th class="p-2">
+        Score
+       </th>
+      </tr>
+     </thead>
+     <tbody id="leaderboard-body">
+      <tr>
+       <td class="p-2">
+        Player 1
+       </td>
+       <td class="p-2">
+        0
+       </td>
+      </tr>
+      <tr>
+       <td class="p-2">
+        Player 2
+       </td>
+       <td class="p-2">
+        0
+       </td>
+      </tr>
+     </tbody>
+    </table>
+   </div>
+  </div>
+  <script>
+   const startGameButton = document.getElementById('start-game');
+        const gameSetup = document.getElementById('game-setup');
+        const gameInterface = document.getElementById('game-interface');
+        const leaderboard = document.getElementById('leaderboard');
+        const timerElement = document.getElementById('time-left');
+        const roundElement = document.getElementById('current-round');
+        const gameImage = document.getElementById('game-image');
+        const guessInput = document.getElementById('guess');
+        const submitGuessButton = document.getElementById('submit-guess');
+        const feedback = document.getElementById('feedback');
+        const leaderboardBody = document.getElementById('leaderboard-body');
+
+        let players = [];
+        let scores = [];
+        let currentRound = 1;
+        let timeLeft = 30;
+        let timer;
+
+        const images = [
+            { src: 'https://placehold.co/600x400', answer: 'Placeholder Image 1' },
+            { src: 'https://placehold.co/600x400', answer: 'Placeholder Image 2' },
+            { src: 'https://placehold.co/600x400', answer: 'Placeholder Image 3' }
+        ];
+
+        startGameButton.addEventListener('click', () => {
+            const player1 = document.getElementById('player1').value;
+            const player2 = document.getElementById('player2').value;
+
+            if (player1 && player2) {
+                players = [player1, player2];
+                scores = [0, 0];
+                gameSetup.classList.add('hidden');
+                gameInterface.classList.remove('hidden');
+                leaderboard.classList.remove('hidden');
+                startRound();
+            } else {
+                alert('Please enter names for both players.');
+            }
+        });
+
+        submitGuessButton.addEventListener('click', () => {
+            const guess = guessInput.value.trim().toLowerCase();
+            const correctAnswer = images[currentRound - 1].answer.toLowerCase();
+
+            if (guess === correctAnswer) {
+                feedback.textContent = 'Correct!';
+                scores[currentRound % 2] += 1;
+            } else {
+                feedback.textContent = 'Wrong! The correct answer was: ' + images[currentRound - 1].answer;
+            }
+
+            updateLeaderboard();
+            nextRound();
+        });
+
+        function startRound() {
+            if (currentRound > images.length) {
+                declareWinner();
+                return;
+            }
+
+            gameImage.src = images[currentRound - 1].src;
+            roundElement.textContent = currentRound;
+            timeLeft = 30;
+            timerElement.textContent = timeLeft;
+            feedback.textContent = '';
+            guessInput.value = '';
+            timer = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            timeLeft -= 1;
+            timerElement.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                feedback.textContent = 'Time\'s up! The correct answer was: ' + images[currentRound - 1].answer;
+                nextRound();
+            }
+        }
+
+        function nextRound() {
+            clearInterval(timer);
+            currentRound += 1;
+            setTimeout(startRound, 2000);
+        }
+
+        function updateLeaderboard() {
+            leaderboardBody.innerHTML = '';
+            players.forEach((player, index) => {
+                const row = document.createElement('tr');
+                const playerNameCell = document.createElement('td');
+                playerNameCell.classList.add('p-2');
+                playerNameCell.textContent = player;
+                const playerScoreCell = document.createElement('td');
+                playerScoreCell.classList.add('p-2');
+                playerScoreCell.textContent = scores[index];
+                row.appendChild(playerNameCell);
+                row.appendChild(playerScoreCell);
+                leaderboardBody.appendChild(row);
+            });
+        }
+
+        function declareWinner() {
+            gameInterface.classList.add('hidden');
+            feedback.textContent = 'Game Over! The winner is ' + (scores[0] > scores[1] ? players[0] : players[1]);
+        }
+  </script>
+ </body>
+</html>
